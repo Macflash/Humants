@@ -5,9 +5,10 @@ var worldView;
 
 //ANT OBJECTS
 var teams;
-var ants;
-var hills;
 var paths;
+
+// MAP OBJECTS
+var resources;
 
 function keyinput(k) {
     console.log("key: " + k);
@@ -42,6 +43,11 @@ function init() {
     var context = canvas.getContext("2d");
     worldView = new worldView(1, 250, 250, canvas, context);
 
+    // SETUP UP MAP OBJECTS
+    resources = new Array();
+    SpawnResources(resources, ResourceType.FOOD);
+    console.log(resources.length);
+
     // SETUP ANT OBJECTS
     teams = new Array();
     teams.push(new team("red", 100, 100));
@@ -49,11 +55,16 @@ function init() {
 
     // START UPDATING
     update(teams);
-    setInterval("update(teams)", 1000 / 60);
+    setInterval("update(teams, resources)", 1000 / 60);
 }
 
-function update(teams) {
+function update(teams, resources) {
     worldView.clear();
+
+    for (var r = 0; r < resources.length; r++) {
+        worldView.drawResource(resources[r]);
+    }
+
     for (var t = 0; t < teams.length; t++) {
         var ants = teams[t].ants;
         var hills = teams[t].hills;

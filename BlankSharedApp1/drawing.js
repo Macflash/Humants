@@ -7,6 +7,9 @@ function worldView(scale, centerX, centerY, canvas, context) {
     this.context = context;
     this.antRadius = 5;
     this.hillRadius = 15;
+    this.drawResource = function (r) {
+        this.drawCircle(r.amount * this.scale, "green", this.scale * (r.x - (this.centerX)) + (this.canvas.width / 2), this.scale * (r.y - (this.centerY)) + (this.canvas.height / 2));
+    }
     this.drawAnt = function (ant) {
         this.drawCircle(this.antRadius * this.scale, ant.color, this.scale * (ant.x - (this.centerX)) + (this.canvas.width / 2), this.scale * (ant.y - (this.centerY)) + (this.canvas.height / 2));
     };
