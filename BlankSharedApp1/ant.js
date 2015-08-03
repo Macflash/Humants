@@ -1,7 +1,5 @@
 // JavaScript source code
 
-var Seeking = { FOOD: "food", WATER: "water" };
-
 function team(color) {
     this.color = color;
     this.ants = new Array();
@@ -16,6 +14,7 @@ function team(color, x, y) {
 }
 
 function ant(x, y, color) {
+    this.entity = Entity.ANT;
     this.x = x;
     this.y = y;
     this.color = color;
