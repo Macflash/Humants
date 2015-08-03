@@ -6,8 +6,11 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{891C72DC-9721-4A78-A969-D171F0818903}"
 	ProjectSection(SolutionItems) = preProject
 		ant.js = ant.js
+		drawing.js = drawing.js
 		layout.html = layout.html
 		main.js = main.js
+		path.js = path.js
+		resource.js = resource.js
 	EndProjectSection
 EndProject
 Global
