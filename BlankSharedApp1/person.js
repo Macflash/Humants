@@ -92,7 +92,7 @@ function person(id) {
             this.continueAction(t);
         }
         else {
-            this.pickAndStartAction();
+            this.pickAndStartAction(t);
         }
     }
 
@@ -142,7 +142,7 @@ function person(id) {
         }
     }
 
-    this.pickAndStartAction = function(){
+    this.pickAndStartAction = function(t){
         //console.log("needs: " + this.needs);
         //find the most pressing need
         var need = this.highestNeed();
@@ -230,7 +230,7 @@ function person(id) {
                 }
             }
         }
-        console.log("person picked: " + bestbet.name);
+        console.log("person picked supply: " + bestbet.name + " it cost: " + mincost);
         return bestbet;
     }
 
@@ -248,10 +248,30 @@ function person(id) {
                 }
             }
         }
-        console.log("person picked: " + bestbet.name);
+        console.log("person picked good: " + bestbet.name + " it cost: " + mincost);
         return bestbet;
     }
+    this.pickBestLand = function (r) {
+        var bestland = "nothing";
+        var bestrate = 0;
+        for (var i = 0; i < map.length; i++) {
+            for (var j = 0; j < map[i].length; j++) {
+                //check if we own it
+                console.log("checking tile " + i + "," + j);
 
+                console.log("ids: " + this.id + "," + map[i][j].ownerid);
+                if (map[i][j].ownerid == this.id) {
+                    if (map[i][j].resources[r] > bestrate) {
+                        bestland = map[i][j];
+                        bestrate = map[i][j].resources[r];
+                    }
+                }
+
+                //or if we can at least use or rent it!
+            }
+        }
+        return bestland;
+    }
     this.estimateCost = function (g) {
         //for each supply in good estimate its cost to make / buy
         var cost = 0;
@@ -264,7 +284,9 @@ function person(id) {
 
         //for each resource in good estimate the time to make on your land
         for (var key in g.res) {
-            cost += g.res[key];
+            var bestland = this.pickBestLand(key);
+            console.log(bestland);
+            cost += g.res[key] / bestland.resources[key];
         }
 
         //then compare this to the market cost of the item! big TODO!!

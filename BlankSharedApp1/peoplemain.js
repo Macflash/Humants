@@ -66,8 +66,8 @@ function init() {
             p.x = (i + .5) * cellSize;
             p.y = (j + .5) * cellSize;
             people[id] = p;
-            id++;
             map[i][j] = new land(i, j, id);
+            id++;
         }
     }
 
