@@ -22,15 +22,17 @@ function ant(x, y, color) {
     this.seeking = ResourceType.FOOD;
     this.target = null;
     this.lastNode = new path(color, x, y, null, null, null);
+    this.lastTarget = null;
     this.dir = Math.random() * 360;
     this.turnchance = .1;
     this.pathcount = 0;
     this.turnamt = 30;
     this.movespd = 1;
-    this.touchRange = 5;
-    this.senseRange = 35;
+    this.touchRange = 10;
+    this.senseRange = 60;
     this.carryCapacity = 2;
     this.touched = function (e) {
+        // TOUCHED RESOURCE
         if (e.entity == Entity.RESOURCE) {
             //touched a resource!
             if (this.carrying == null) {
@@ -39,27 +41,82 @@ function ant(x, y, color) {
                 this.carrying = new resource(e.type, null, null, amt);
                 e.amount -= amt;
                 var cur = this.lastNode;
-                while (cur.back != null) {
-                    cur = cur.back;
-                }
                 this.target = cur;
-                //console.log(this);
             }
         }
 
+        // TOUCHED HILL
+        else if (e.entity == Entity.HILL) {
+            if (e.color == this.color && this.carrying != null) {
+                if (this.carrying.type == ResourceType.FOOD) {
+                    e.food += this.carrying.amount;
+                }
+                this.carrying = null;
+                this.target = null;
+            }
+        }
+        // TOUCHED PATH
+        else if (e.entity == Entity.PATH) {
+            //if we touch a path and we are carrying something go home with it
+            if (e.color == this.color && this.carrying != null) {
+                //if we can't find anything else we can try to follow it back home
+                if (this.target == null) {
+                    e.strength -= 10;
+                    if (this.lastTarget != e.back) {
+                        this.lastTarget = this.target;
+                        this.target = e.back;
+                    }
+                }
+                    //we touched what we were going for
+                else if (this.target.x == e.x && this.target.y == e.y) {
+                    this.lastTarget = this.target;
+                    this.target = e.back;
+                    e.type = this.carrying.type;
+                    e.strength = 100;
+                }
+            }
+            
+            else if (e.color == this.color && this.carrying == null && e.type == this.seeking) {
+                //follow it to the resource!
+                if (this.target == null && e != this.lastTarget) {
+                    this.lastTarget = this.target;
+                    this.target = e.out;
+                }
+            }
+            // */
+        }
+        // TOUCHED ANT
+        else if (e.entity == Entity.ANT) {
 
-
+        }
     }
     this.sensed = function (e) {
+        // RESOURCE
         if (e.entity == Entity.RESOURCE) {
             //we sensed a resource
 
-            //is it what we are looking for?
+            //is it what we are looking for? do we not have anything already?
             if (this.seeking == e.type && this.carrying == null) {
                 //set this as our goal!
                 this.target = e;
             }
         }
+        else if (e.entity == Entity.HILL) {
+            //if its a resource we are looking for, go to it!
+            if (e.color == this.color && this.carrying != null) {
+                this.target = e;
+            }
+        }
+        //WE SENSED A PATH that we wanted!
+        else if (e.entity == Entity.PATH) {
+            //if its a resource we are looking for, go to it!
+            if (e.color == this.color && e.type == this.seeking && this.carrying == null) {
+                if (this.target == null) {
+                    this.target = e;
+                }
+            }
+        }
+
     }
     this.addNode = function () {
         var node = new path(this.color, this.x, this.y, this.lastNode, null, null);
@@ -81,22 +138,29 @@ function ant(x, y, color) {
             this.x += dirToX(this.dir) * this.movespd;
             this.y += dirToY(this.dir) * this.movespd;
 
+            //only add a trail if we are randomly searching
             this.pathcount += 1;
-            if (this.pathcount > 100) {
+            if (this.pathcount > 50) {
                 this.pathcount = 0;
-                //this.addNode();
+                this.addNode();
             }
 
         }
         else {
             //console.log("targetting!");
             var d = dist(this, this.target);
-            if (Math.abs(d) > .0001) {
+            if (Math.abs(d) > 1) {
                 var xx = (this.target.x - this.x) * this.movespd / d;
                 var yy = (this.target.y - this.y) * this.movespd / d;
                 this.x += xx;
                 this.y += yy;
                 //console.log(Math.sqrt(xx * xx + yy * yy));
+            }
+            else {
+                this.target = null;
+                //this.dir = Math.random() * 360;
+                this.x += dirToX(this.dir) * this.movespd;
+                this.y += dirToY(this.dir) * this.movespd;
             }
             //var tarDir = getDirToTarget(this, this.target);
             //this.dir = tarDir;

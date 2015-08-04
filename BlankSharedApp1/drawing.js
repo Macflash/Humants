@@ -11,7 +11,9 @@ function worldView(scale, centerX, centerY, canvas, context) {
         this.drawCircle(r.amount, "green", r.x, r.y);
     }
     this.drawPath = function (r) {
-        this.drawCircle(r.strength / 10, "yellow", r.x, r.y);
+        var c = "yellow";
+        if (r.type == ResourceType.FOOD) { c = "orange"; }
+        this.drawCircle(r.strength / 10, c, r.x, r.y);
     }
     this.drawAnt = function (ant) {
         this.drawCircle(this.antRadius, ant.color, ant.x, ant.y);

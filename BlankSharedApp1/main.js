@@ -57,7 +57,7 @@ function init() {
     var canvas = document.getElementById("maincanvas");
     canvas.onkeypress = function (evt) { keyinput(String.fromCharCode(evt.which)); };
     var context = canvas.getContext("2d");
-    worldView = new worldView(1, 250, 250, canvas, context);
+    worldView = new worldView(1, 0, 0, canvas, context);
 
     // SETUP UP MAP OBJECTS
     resources = new Array();
@@ -66,8 +66,8 @@ function init() {
 
     // SETUP ANT OBJECTS
     teams = new Array();
-    teams.push(new team("red", 100, 100));
-    teams.push(new team("blue", 300, 300));
+    teams.push(new team("red", -250, -250));
+    teams.push(new team("blue", 250, 250));
 
     // SETUP MAP CELLS FOR LIMITING COLLISION CALLS
     paths = new Array();
@@ -79,9 +79,22 @@ function init() {
 
 function addToCell(e) {
     var x = Math.floor(e.x / cellSize);
+    var x2 = Math.floor(e.x + 20 / cellSize);
+    var x3 = Math.floor(e.x - 20 / cellSize);
     var y = Math.floor(e.y / cellSize);
+    var y2 = Math.floor(e.y + 20 / cellSize);
+    var y3 = Math.floor(e.y - 20 / cellSize);
     var s = x + "," + y;
-    //console.log(s);
+    pushToCell(e, s);
+
+    //handles edge cases but not diagonals
+    if (x2 != x) { pushToCell(e, x2 + "," + y); }
+    if (x3 != x && x3 != x2) { pushToCell(e, x3 + "," + y); }
+    if (y2 != y) { pushToCell(e, x + "," + y2); }
+    if (y3 != y && y3 != y2) { pushToCell(e, x + "," + y3); }
+}
+
+function pushToCell(e, s) {
     if (cell[s] == null) {
         cell[s] = [];
     }
@@ -145,11 +158,27 @@ function update(teams, resources, paths) {
             //compare to all the ones greater than i
             for (var j = i + 1; j < c.length; j++) {
                 
+                if (c[i].entity == Entity.ANT || c[j].entity == Entity.ANT) {
+                    var d = dist(c[i], c[j]);
+
+                    if (d < c[i].touchRange) { c[i].touched(c[j]); }
+                    else if (d < c[i].senseRange) { c[i].sensed(c[j]); }
+
+                    if (d < c[j].touchRange) { c[j].touched(c[i]); }
+                    else if (d < c[j].senseRange) { c[j].sensed(c[i]); }
+
+                }
+
+                /*
+
                 //determine the entity types
                 var ant = null;
                 var enemyAnt = null;
                 var resource = null;
                 var hill = null; // not used right now!
+                var path = null;
+
+                
 
                 if (c[i].entity == Entity.ANT) {
                     ant = c[i];
@@ -161,6 +190,9 @@ function update(teams, resources, paths) {
                     }
                     if (c[j].entity == Entity.HILL) {
                         hill = c[j];
+                    }
+                    if (c[j].entity == Entity.PATH) {
+                        path = c[j];
                     }
                 }
                 else if (c[j].entity == Entity.ANT) {
@@ -196,13 +228,15 @@ function update(teams, resources, paths) {
                             if (ant.carrying.type == ResourceType.FOOD && ant.color == hill.color) {
                                 console.log("DROPPED OFF FOOD!");
                                 hill.food += ant.carrying.amount;
+
+                                ant.carrying = null;
+                                ant.target = null;
+                                ant.lastnode = new path(ant.color, ant.x, ant.y, null, null, null);
                             }
-                            ant.carrying = null;
-                            ant.target = null;
-                            ant.lastnode = new path(ant.color, ant.x, ant.y, null, null, null);
                         }
                     }
                 }
+                */
             }
         }
     }
