@@ -21,6 +21,19 @@ function worldView(scale, centerX, centerY, canvas, context) {
     this.drawHill = function (ant) {
         this.drawLINECircle(this.hillRadius, ant.color, ant.x, ant.y);
     };
+    this.drawRect = function (x, y, w, h, color) {
+        var xt = this.scale * (x - (this.centerX)) + (this.canvas.width / 2);
+        var yt = this.scale * (y - (this.centerY)) + (this.canvas.height / 2);
+        this.context.beginPath();
+        this.context.lineWidth = 1;
+        this.context.strokeStyle = "black";
+        this.context.rect(xt,yt,w*this.scale,h*this.scale);
+        if (color) {
+            this.context.fillStyle = color;
+            this.context.fill();
+        }
+        this.context.stroke();
+    };
     this.drawLINECircle = function (radius, color, worldx, worldy) {
         var x = this.scale * (worldx - (this.centerX)) + (this.canvas.width / 2);
         var y = this.scale * (worldy - (this.centerY)) + (this.canvas.height / 2);
