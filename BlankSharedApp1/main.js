@@ -1,5 +1,8 @@
 // JavaScript source code
 
+// Interval object
+var setintervalid;
+
 // DRAWING OBJECTS
 var worldView;
 
@@ -11,11 +14,20 @@ var paths;
 var resources;
 
 // MAP CELL OBJECTS
-var cellSize = 50;
+var cellSize = 73;
 var cell;
 
 function keyinput(k) {
-    console.log("key: " + k);
+    if (k == 'q') {
+        if (setintervalid) {
+            clearInterval(setintervalid);
+            setintervalid = 0;
+            console.log(teams);
+        }
+        else { setintervalid = setInterval("update(teams, resources, paths)", 1000 / 60); }
+    }
+
+    //console.log("key: " + k);
     if (k == 'z') {
         worldView.scale /= 1.1;
     }
@@ -58,30 +70,57 @@ function init() {
     teams.push(new team("blue", 300, 300));
 
     // SETUP MAP CELLS FOR LIMITING COLLISION CALLS
+    paths = new Array();
 
     // START UPDATING
-    update(teams, resources);
-    setInterval("update(teams, resources)", 1000 / 60);
+    update(teams, resources, paths);
+    setintervalid = setInterval("update(teams, resources, paths)", 1000 / 60);
 }
 
 function addToCell(e) {
-    var x = Math.floor(e.x % cellSize);
-    var y = Math.floor(e.y % cellSize);
+    var x = Math.floor(e.x / cellSize);
+    var y = Math.floor(e.y / cellSize);
     var s = x + "," + y;
+    //console.log(s);
     if (cell[s] == null) {
         cell[s] = [];
     }
     cell[s].push(e);
 }
 
-function update(teams, resources) {
+function update(teams, resources, paths) {
     worldView.clear();
     cell = {};
 
     for (var r = 0; r < resources.length; r++) {
+        if (resources[r].amount <= 0) {
+            var first = resources.slice(0, r);
+            if (r == resources.length - 1) { resources = first; }
+            else {
+                var second = resources.slice(r + 1, resources.length);
+                resources = first.concat(second);
+            }
+        }
         addToCell(resources[r]);
         worldView.drawResource(resources[r]);
     }
+
+    for (var r = 0; r < paths.length; r++) {
+        paths[r].update();
+        if (paths[r].strength < 1) {
+            var first = paths.slice(0, r);
+            if (r == paths.length - 1) { paths = first; }
+            else {
+                var second = paths.slice(r + 1, paths.length);
+                paths = first.concat(second);
+            }
+        }
+        else {
+            addToCell(paths[r]);
+            worldView.drawPath(paths[r]);
+        }
+    }
+
 
     for (var t = 0; t < teams.length; t++) {
         var ants = teams[t].ants;
@@ -102,22 +141,65 @@ function update(teams, resources) {
     for (var key in cell) {
         var c = cell[key];
         for (var i = 0; i < c.length - 1; i++) {
+            //console.log(c.length);
             //compare to all the ones greater than i
-            for(var j = i + 1; j < c.length; j++){
-                if (dist(c[i], c[j]) < 15) {
-                    console.log(c[i].entity + " " + c[j].entity);
-                    //ENEMY ANTS
-                    if (c[i].entity == Entity.ANT && c[j].entity == Entity.ANT) {
-                        console.log("ants near eachother");
-                        if (c[i].color != c[j].color) {
-                            console.log("enemy ants collided!");
-                        }
+            for (var j = i + 1; j < c.length; j++) {
+                
+                //determine the entity types
+                var ant = null;
+                var enemyAnt = null;
+                var resource = null;
+                var hill = null; // not used right now!
+
+                if (c[i].entity == Entity.ANT) {
+                    ant = c[i];
+                    if (c[j].entity == Entity.ANT) {
+                        enemyAnt = c[j];
                     }
-                    // RESOURCE AND ANT
-                    if (c[i].entity == Entity.ANT && c[j].entity == Entity.RESOURCE) {
-                        console.log("ants near eachother");
-                        if (c[i].color != c[j].color) {
-                            console.log("enemy ants collided!");
+                    if (c[j].entity == Entity.RESOURCE) {
+                        resource = c[j];
+                    }
+                    if (c[j].entity == Entity.HILL) {
+                        hill = c[j];
+                    }
+                }
+                else if (c[j].entity == Entity.ANT) {
+                    ant = c[j];
+                    if (c[i].entity == Entity.RESOURCE) {
+                        resource = c[i];
+                    }
+                    if (c[i].entity == Entity.HILL) {
+                        hill = c[i];
+                    }
+                }
+
+                //get distance
+                if (ant == null) { continue; }
+                if (resource != null) {
+                    // ant resource
+                    var d = dist(ant, resource) - resource.amount;
+                    if (d <= ant.touchRange) {
+                        // ant hit resource
+                        ant.touched(resource);
+                    }
+                    if (d <= ant.senseRange) {
+                        ant.sensed(resource);
+                    }
+                }
+                if (enemyAnt != null) {
+                    // ant to ant
+                }
+                if (hill != null) {
+                    if (ant.carrying != null) {
+                        var d = dist(ant, hill) - 18;
+                        if (d <= ant.touchRange) {
+                            if (ant.carrying.type == ResourceType.FOOD && ant.color == hill.color) {
+                                console.log("DROPPED OFF FOOD!");
+                                hill.food += ant.carrying.amount;
+                            }
+                            ant.carrying = null;
+                            ant.target = null;
+                            ant.lastnode = new path(ant.color, ant.x, ant.y, null, null, null);
                         }
                     }
                 }
@@ -126,10 +208,4 @@ function update(teams, resources) {
     }
 
 
-}
-
-function dist(e1, e2){
-    var dx = e1.x - e2.x;
-    var dy = e1.y - e2.y;
-    return Math.sqrt(dx * dx + dy * dy);
 }
