@@ -2,7 +2,7 @@
 var Needs = { FOOD: 0, WATER: 1, SHELTER: 2, COMFORT: 3 };
 var Quality = {POOR: .5, NORMAL: 1, GOOD: 1.2, EXCELLENT: 1.3};
 var Resource = { SOIL: 0, TREES: 1, IRON: 2, GOLD: 3, OIL: 4, ROCK: 5, WATER: 6 };
-var Supply = { COTTON: 0, LUMBER: 1 };
+var Supply = { COTTON: 0, LUMBER: 1, GRAIN: 2 };
 
 function land(x,y,ownerid) {
     this.ownerid = ownerid;
@@ -241,7 +241,7 @@ function person(id) {
             if (goods[i].satisfies[need] > 0) {
                 //we found one! estimate its cost!
                 var cost = this.estimateCost(goods[i]);
-
+                cost = cost / goods[i].satisfies[need];
                 if (cost < mincost) {
                     mincost = cost;
                     bestbet = goods[i];
@@ -254,14 +254,21 @@ function person(id) {
 
     this.estimateCost = function (g) {
         //for each supply in good estimate its cost to make / buy
-        for (var key in g.res) {
-            //console.log(key);
+        var cost = 0;
+        for (var key in g.inputs) {
+            if (g.inputs[key] > 0) {
+                var s = this.pickInput(key);
+                cost += this.estimateCost(s) * g.inputs[key];
+            }
         }
 
         //for each resource in good estimate the time to make on your land
+        for (var key in g.res) {
+            cost += g.res[key];
+        }
 
         //then compare this to the market cost of the item! big TODO!!
-        return 1;
+        return cost;
     }
 }
 
@@ -269,8 +276,15 @@ var goods = [];
 var g;
 g = new good("corn");
 g.satisfies[Needs.FOOD] = 1;
+g.supplies[Supply.GRAIN] = 1;
 g.res[Resource.SOIL] = 1;
 goods.push(g);
+
+g = new good("corn chips");
+g.satisfies[Needs.FOOD] = 3;
+g.inputs[Supply.GRAIN] = 2;
+goods.push(g);
+
 
 g = new good("cotton");
 g.res[Resource.SOIL] = 1;
