@@ -5,11 +5,11 @@ var setintervalid;
 
 // DRAWING OBJECTS
 var worldView;
-var speed = 500
+var speed = 50;
 
 // MAP CELL OBJECTS
 var map = [];
-var mapsize = 1;
+var mapsize = 2;
 var cellSize = 50;
 
 //people and market/economy objects
@@ -59,15 +59,14 @@ function init() {
     worldView = new worldView(1, 0, 0, canvas, context);
 
     var id = 0;
+    var p = new person(id);
     for (var i = 0; i < mapsize; i++) {
         map[i] = [];
         for (var j = 0; j < mapsize; j++) {
-            var p = new person(id);
             p.x = (i + .5) * cellSize;
             p.y = (j + .5) * cellSize;
             people[id] = p;
             map[i][j] = new land(i, j, id);
-            id++;
         }
     }
 

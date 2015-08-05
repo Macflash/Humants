@@ -80,7 +80,7 @@ function person(id) {
     this.needs = [];
     this.needs[Needs.FOOD] = 0;
     this.needs[Needs.WATER] = 0;
-    this.needs[Needs.COMFORT] = 100;
+    this.needs[Needs.COMFORT] = 0;
 
     this.updateNeeds = function (t) {
         for (var k in this.needs) {
@@ -125,16 +125,24 @@ function person(id) {
                 if (this.progress.res()[r] == null) { this.progress.res()[r] = 0; }
                 //console.log("p: " + this.progress.res);
                 if (this.progress.res()[r] < this.making.res()[r]) {
-                    //make it based on the land speed (TODO)
+                    //TODO: need to evaluate timing and savings for each land tile better than this one
+                    // best tile might not have highest stats, it might instead be a bit better and way closer
                     var tile = this.getCurrentMapTile();
                     var bestTile = this.pickBestLand(r);
-                    if (tile.x != bestTile.x && tile.y != bestTile.y) {
+                    if (this.x != bestTile.x * cellSize || this.y != bestTile.y * cellSize) {
                         //check if we should move to that tile
                         //ie the time we'd save is larger than the time it would take to get there
-                        if()
+                        //var transit = this.estimateTravelTime(bestTile);
+                        //var savings = this.estimateWorkTime(bestTile, r) - this.estimateWorkTime(tile, r);
+                        //if (savings >= transit) {
+                        //    console.log("HEY YOU SHOULD MOVE!");
+                        this.moveTowardTile(bestTile);
+                        //}
                     }
-                    console.log(tile.resources[r]);
-                    this.progress.res()[r] += tile.resources[r] * t / 1000; //to take about 1 second
+                    else {
+                        //console.log(tile.resources[r]);
+                        this.progress.res()[r] += tile.resources[r] * t / 1000; //to take about 1 second
+                    }
                     done = false;
                     break;
                 }
@@ -150,12 +158,23 @@ function person(id) {
             }
         }
     }
+    this.estimateWorkTime = function (tile, r) {
+        return tile.resources[r] * t / 1000;
+    }
     this.estimateTravelTime = function (destTile) {
         var curTile = this.getCurrentMapTile();
         var dx = destTile.x - curTile.x;
         var dy = destTile.y - curTile.y;
         var d = Math.sqrt(dy * dy + dx * dx);
         return d / this.walkspeed;
+    }
+    this.moveTowardTile = function (dest) {
+        var curTile = this.getCurrentMapTile();
+        var dx = dest.x - curTile.x;
+        var dy = dest.y - curTile.y;
+        var d = Math.sqrt(dy * dy + dx * dx);
+        this.x += dx / d;
+        this.y += dy / d;
     }
     this.getCurrentMapTile = function () {
         var xx = Math.floor(this.x / cellSize);
@@ -167,7 +186,12 @@ function person(id) {
         //console.log("needs: " + this.needs);
         //find the most pressing need
         var need = this.highestNeed();
-
+        console.log(need);
+        if (need < 0) {
+            console.log("no needs huh");
+            // i guess you are set? wait for now...
+            return;
+        }
         //check if you have something in your inventory to help it
         var inv = this.checkInventory(need);
 
@@ -232,9 +256,8 @@ function person(id) {
         if (!g) { console.log("ERROR: tried making false lol"); }
         this.doingAction = true;
         this.making.push(g);
-        console.log("started " + this.making.name());
         this.progress.push(new good("partially made " + g.name));
-
+        console.log("started " + this.making.name());
     }
 
     this.pickInput = function (supply) {
@@ -275,12 +298,11 @@ function person(id) {
     this.pickBestLand = function (r) {
         var bestland = "nothing";
         var bestrate = 0;
-        for (var i = 0; i < map.length; i++) {
-            for (var j = 0; j < map[i].length; j++) {
+        for (var i = 0; i < mapsize; i++) {
+            for (var j = 0; j < mapsize; j++) {
                 //check if we own it
-                console.log("checking tile " + i + "," + j);
-
-                console.log("ids: " + this.id + "," + map[i][j].ownerid);
+                //console.log("checking tile " + i + "," + j);
+                //console.log("ids: " + this.id + "," + map[i][j].ownerid);
                 if (map[i][j].ownerid == this.id) {
                     if (map[i][j].resources[r] > bestrate) {
                         bestland = map[i][j];
