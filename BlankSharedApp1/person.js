@@ -68,6 +68,7 @@ function person(id) {
     this.x = 0;
     this.y = 0;
     this.inventory = [];
+    this.walkspeed = 5;
 
     //  BASE SKILL STATS
     this.skill = .75 + Math.random() * .5;
@@ -125,7 +126,15 @@ function person(id) {
                 //console.log("p: " + this.progress.res);
                 if (this.progress.res()[r] < this.making.res()[r]) {
                     //make it based on the land speed (TODO)
-                    this.progress.res()[r] += t / 5000; //to take about 1 second
+                    var tile = this.getCurrentMapTile();
+                    var bestTile = this.pickBestLand(r);
+                    if (tile.x != bestTile.x && tile.y != bestTile.y) {
+                        //check if we should move to that tile
+                        //ie the time we'd save is larger than the time it would take to get there
+                        if()
+                    }
+                    console.log(tile.resources[r]);
+                    this.progress.res()[r] += tile.resources[r] * t / 1000; //to take about 1 second
                     done = false;
                     break;
                 }
@@ -140,6 +149,18 @@ function person(id) {
                 this.doingAction = false;
             }
         }
+    }
+    this.estimateTravelTime = function (destTile) {
+        var curTile = this.getCurrentMapTile();
+        var dx = destTile.x - curTile.x;
+        var dy = destTile.y - curTile.y;
+        var d = Math.sqrt(dy * dy + dx * dx);
+        return d / this.walkspeed;
+    }
+    this.getCurrentMapTile = function () {
+        var xx = Math.floor(this.x / cellSize);
+        var yy = Math.floor(this.y / cellSize);
+        return map[xx][yy];
     }
 
     this.pickAndStartAction = function(t){
