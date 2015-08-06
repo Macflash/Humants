@@ -9,7 +9,7 @@ var speed = 50;
 
 // MAP CELL OBJECTS
 var map = [];
-var mapsize = 2;
+var mapsize = 4;
 var cellSize = 50;
 
 //people and market/economy objects
@@ -58,14 +58,18 @@ function init() {
     worldView = new worldView(1, 0, 0, canvas, context);
 
     var id = 0;
-    for (var i = 0; i < mapsize; i++) {
+    for (var i = 0; i < mapsize; i+=2) {
         map[i] = [];
-        for (var j = 0; j < mapsize; j++) {
+        map[i + 1] = [];
+        for (var j = 0; j < mapsize; j+=2) {
             var p = new person(id);
             p.x = (i + .5) * cellSize;
             p.y = (j + .5) * cellSize;
             people[id] = p;
             map[i][j] = new land(i, j, id);
+            map[i+1][j] = new land(i+1, j, id);
+            map[i][j+1] = new land(i, j+1, id);
+            map[i+1][j+1] = new land(i+1, j+1, id);
             id++;
         }
     }
@@ -83,6 +87,7 @@ function update() {
 
     //update world
     UpdatePeople(people);
+    //console.log(people[0].inventory);
 }
 
 function UpdatePeople(people) {
