@@ -16,7 +16,6 @@ var cellSize = 50;
 var people = [];
 var market = [];
 
-
 function keyinput(k) {
     if (k == 'q') {
         if (setintervalid) {
@@ -59,14 +58,15 @@ function init() {
     worldView = new worldView(1, 0, 0, canvas, context);
 
     var id = 0;
-    var p = new person(id);
     for (var i = 0; i < mapsize; i++) {
         map[i] = [];
         for (var j = 0; j < mapsize; j++) {
+            var p = new person(id);
             p.x = (i + .5) * cellSize;
             p.y = (j + .5) * cellSize;
             people[id] = p;
             map[i][j] = new land(i, j, id);
+            id++;
         }
     }
 
@@ -83,7 +83,6 @@ function update() {
 
     //update world
     UpdatePeople(people);
-
 }
 
 function UpdatePeople(people) {

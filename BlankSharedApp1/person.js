@@ -1,8 +1,10 @@
 // JavaScript source code
-var Needs = { FOOD: 0, WATER: 1, SHELTER: 2, COMFORT: 3 };
+var Needs = { FOOD: 0, WATER: 1, COMFORT: 2, SLEEP: 3, CLOTHING: 4, ENTERTAINMENT: 5 };
 var Quality = {POOR: .5, NORMAL: 1, GOOD: 1.2, EXCELLENT: 1.3};
-var Resource = { SOIL: 0, TREES: 1, IRON: 2, GOLD: 3, OIL: 4, ROCK: 5, WATER: 6 };
+var Resource = { SOIL: 0, TREES: 1, IRON: 2, GOLD: 3, OIL: 4, ROCK: 5, WATER: 6, HOUSING: 7 };
 var Supply = { COTTON: 0, LUMBER: 1, GRAIN: 2 };
+
+//using land will deplete the resource
 
 function land(x,y,ownerid) {
     this.ownerid = ownerid;
@@ -16,6 +18,7 @@ function land(x,y,ownerid) {
     this.resources[Resource.IRON] = Math.pow(Math.random(), 10);
     this.resources[Resource.OIL] = Math.pow(Math.random(), 15);
     this.resources[Resource.GOLD] = Math.pow(Math.random(), 100);
+    this.resources[Resource.HOUSING] = .1;
 }
 
 // A good that satisfies certain needs
@@ -26,6 +29,7 @@ function good(name) {
     this.supplies = []; //inputs this supplies
     this.inputs = []; //inputs this requires
     this.difficulty = 1;
+    this.costs = [];
 }
 
 function goodList(){
@@ -69,6 +73,7 @@ function person(id) {
     this.y = 0;
     this.inventory = [];
     this.walkspeed = 5;
+    this.money = 0;
 
     //  BASE SKILL STATS
     this.skill = .75 + Math.random() * .5;
@@ -81,6 +86,8 @@ function person(id) {
     this.needs[Needs.FOOD] = 0;
     this.needs[Needs.WATER] = 0;
     this.needs[Needs.COMFORT] = 0;
+    this.needs[Needs.SLEEP] = 0;
+    this.needs[Needs.CLOTHING] = 0;
 
     this.updateNeeds = function (t) {
         for (var k in this.needs) {
@@ -104,9 +111,6 @@ function person(id) {
 
         //go through all the supply goods and make or get them
         for (var s in this.making.inputs()) {
-            //console.log("you have this much: " + this.checkInventoryForInputs(s));
-            //console.log("you need this much: " + this.making.inputs()[s]);
-            //console.log(this.inventory);
             // check if the supply is already satisfied because the item is in your inventory
             if (this.checkInventoryForInputs(s) < this.making.inputs()[s]) {
                 //this means we don't have enough of this supply item
@@ -123,24 +127,27 @@ function person(id) {
             //go through and work on all the resources for this object
             for (var r in this.making.res()) {
                 if (this.progress.res()[r] == null) { this.progress.res()[r] = 0; }
-                //console.log("p: " + this.progress.res);
                 if (this.progress.res()[r] < this.making.res()[r]) {
                     //TODO: need to evaluate timing and savings for each land tile better than this one
                     // best tile might not have highest stats, it might instead be a bit better and way closer
                     var tile = this.getCurrentMapTile();
                     var bestTile = this.pickBestLand(r);
-                    if (this.x != bestTile.x * cellSize || this.y != bestTile.y * cellSize) {
+
+                    if (bestTile == "nothing") {
+                        //we can't make this!
+                        // we might need to try to improve the land!
+
+                    }
+                    else if ((this.x != (bestTile.x + .5) * cellSize) || (this.y != (bestTile.y + .5) * cellSize)) {
                         //check if we should move to that tile
                         //ie the time we'd save is larger than the time it would take to get there
                         //var transit = this.estimateTravelTime(bestTile);
                         //var savings = this.estimateWorkTime(bestTile, r) - this.estimateWorkTime(tile, r);
                         //if (savings >= transit) {
-                        //    console.log("HEY YOU SHOULD MOVE!");
                         this.moveTowardTile(bestTile);
                         //}
                     }
                     else {
-                        //console.log(tile.resources[r]);
                         this.progress.res()[r] += tile.resources[r] * t / 1000; //to take about 1 second
                     }
                     done = false;
@@ -149,7 +156,7 @@ function person(id) {
             }
         }
         if (done) {
-            console.log("finished making " + this.making.name());
+            //console.log("finished making " + this.making.name());
             //remove the supplies used from your inventory!
             this.inventory.push(this.making.pop());
             this.progress.pop();
@@ -169,12 +176,19 @@ function person(id) {
         return d / this.walkspeed;
     }
     this.moveTowardTile = function (dest) {
-        var curTile = this.getCurrentMapTile();
-        var dx = dest.x - curTile.x;
-        var dy = dest.y - curTile.y;
+        console.log("moving!");
+        //var curTile = this.getCurrentMapTile();
+        var dx = (dest.x + .5) * cellSize - this.x;
+        var dy = (dest.y + .5) * cellSize - this.y;
         var d = Math.sqrt(dy * dy + dx * dx);
-        this.x += dx / d;
-        this.y += dy / d;
+        if (d < this.walkspeed) {
+            this.x = (dest.x + .5) * cellSize;
+            this.y = (dest.y + .5) * cellSize;
+        }
+        else {
+            this.x += dx / d;
+            this.y += dy / d;
+        }
     }
     this.getCurrentMapTile = function () {
         var xx = Math.floor(this.x / cellSize);
@@ -183,12 +197,10 @@ function person(id) {
     }
 
     this.pickAndStartAction = function(t){
-        //console.log("needs: " + this.needs);
         //find the most pressing need
         var need = this.highestNeed();
-        console.log(need);
         if (need < 0) {
-            console.log("no needs huh");
+            //console.log("no needs huh");
             // i guess you are set? wait for now...
             return;
         }
@@ -212,6 +224,7 @@ function person(id) {
         //order wins in tie, should later take into consideration which one can be satisfied fastest / most efficiently!
         var n = -1;
         var max = 0;
+        //console.log(this.needs);
         for (var k in this.needs) {
             if (this.needs[k] > max) {
                 max = this.needs[k];
@@ -242,7 +255,7 @@ function person(id) {
     }
 
     this.use = function (i) {
-        console.log("used " + this.inventory[i].name);
+        //console.log("used " + this.inventory[i].name);
         var g = this.inventory[i];
         //apply the effects of the good
         for (var k in g.satisfies) {
@@ -257,7 +270,7 @@ function person(id) {
         this.doingAction = true;
         this.making.push(g);
         this.progress.push(new good("partially made " + g.name));
-        console.log("started " + this.making.name());
+        //console.log("started " + this.making.name());
     }
 
     this.pickInput = function (supply) {
@@ -274,17 +287,22 @@ function person(id) {
                 }
             }
         }
-        console.log("person picked supply: " + bestbet.name + " it cost: " + mincost);
+        //console.log("person picked supply: " + bestbet.name + " it cost: " + mincost);
         return bestbet;
     }
 
     this.pickGood = function (need) {
-        var mincost = 10000000;
+        var mincost = 999999999;
         var bestbet = "nothing";
         for (var i = 0; i < goods.length; i++) {
             if (goods[i].satisfies[need] > 0) {
                 //we found one! estimate its cost!
                 var cost = this.estimateCost(goods[i]);
+                var marketcost = this.lowestMarketPrice(goods[i]);
+                if (marketcost < cost) {
+                    console.log("person " + this.id + " should buy " + goods[i].name + " instead of making it");
+                    console.log(goods);
+                }
                 cost = cost / goods[i].satisfies[need];
                 if (cost < mincost) {
                     mincost = cost;
@@ -292,7 +310,7 @@ function person(id) {
                 }
             }
         }
-        console.log("person picked good: " + bestbet.name + " it cost: " + mincost);
+        //console.log("person picked good: " + bestbet.name + " it cost: " + mincost);
         return bestbet;
     }
     this.pickBestLand = function (r) {
@@ -301,8 +319,6 @@ function person(id) {
         for (var i = 0; i < mapsize; i++) {
             for (var j = 0; j < mapsize; j++) {
                 //check if we own it
-                //console.log("checking tile " + i + "," + j);
-                //console.log("ids: " + this.id + "," + map[i][j].ownerid);
                 if (map[i][j].ownerid == this.id) {
                     if (map[i][j].resources[r] > bestrate) {
                         bestland = map[i][j];
@@ -321,19 +337,36 @@ function person(id) {
         for (var key in g.inputs) {
             if (g.inputs[key] > 0) {
                 var s = this.pickInput(key);
-                cost += this.estimateCost(s) * g.inputs[key];
+                var mycost = this.estimateCost(s);
+                var marketcost = this.lowestMarketPrice(s);
+                cost += Math.min(mycost, marketcost) * g.inputs[key];
             }
         }
 
         //for each resource in good estimate the time to make on your land
         for (var key in g.res) {
             var bestland = this.pickBestLand(key);
-            console.log(bestland);
             cost += g.res[key] / bestland.resources[key];
         }
 
         //then compare this to the market cost of the item! big TODO!!
+        g.costs[this.id] = cost;
+
         return cost;
+    }
+    this.lowestMarketPrice = function (g) {
+        var lowest = null;
+        var first = true;
+        for (var id in g.costs) {
+            if (first) {
+                lowest = g.costs[id];
+                first = false;
+            }
+            else if (g.costs[id] < lowest) {
+                lowest = g.costs[id];
+            }
+        }
+        return lowest;
     }
 }
 
@@ -357,11 +390,18 @@ g.supplies[Supply.COTTON] = 1;
 goods.push(g);
 
 g = new good("pants");
-g.satisfies[Needs.COMFORT] = 1;
+g.satisfies[Needs.COMFORT] = .5;
+g.satisfies[Needs.CLOTHING] = 1;
 g.inputs[Supply.COTTON] = 1;
 goods.push(g);
 
 g = new good("drinking water");
 g.satisfies[Needs.WATER] = 1;
 g.res[Resource.WATER] = 1;
+goods.push(g);
+
+g = new good("sleep");
+g.satisfies[Needs.SLEEP] = 2;
+g.satisfies[Needs.COMFORT] = 1;
+g.res[Resource.HOUSING] = 1;
 goods.push(g);
