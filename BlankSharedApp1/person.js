@@ -31,6 +31,7 @@ function good(name) {
     this.difficulty = 1;
     this.costs = [];
     this.batch = 1; // how many are made at a time
+    this.tradeable = true;
 }
 
 function goodList(){
@@ -79,7 +80,7 @@ function person(id) {
     this.inventory = [];
     this.walkspeed = 5;
     this.money = 0;
-    this.workRequest = [];
+    this.workList = [];
 
     //  BASE SKILL STATS
     this.skill = .75 + Math.random() * .5;
@@ -119,9 +120,26 @@ function person(id) {
             this.making.pop();
             this.progress.pop();
             this.doingAction = false;
-            console.log("bought item!!");
+
+            var price = (g.costs[this.id] + g.costs[p.id]) / 2;
+            this.money -= price;
+            p.money += price;
+            console.log("bought " + g.name + " for $" + price);
             //for now cost can be avg of your cost and theirs
 
+        }
+        else {
+            //see if they are planning on making that good
+            this.requestWork(g, p);
+
+        }
+    }
+    //workList is either a thing indexed by name or maybe better with the actual good number
+    this.requestWork = function (g, p) {
+        if (p.workList.indexOf(g) < 0) {
+            console.log("person " + this.id + " requested " + g.name + " from " + p.id);
+            p.workList.push(g);
+            console.log(p.workList);
         }
     }
 
@@ -139,6 +157,7 @@ function person(id) {
                 //otherwise wait i guess... its not a big deal because its still faster thats the whole point.
             }
             else {
+                this.requestWork(g, people[x.id]);
                 // we are still moving
                 // so maybe just chill?
             }
@@ -230,7 +249,7 @@ function person(id) {
         return d / this.walkspeed;
     }
     this.moveTowardTile = function (dest) {
-        console.log("moving to tile!");
+        //console.log("moving to tile!");
         //var curTile = this.getCurrentMapTile();
         var dx = (dest.x + .5) * cellSize - this.x;
         var dy = (dest.y + .5) * cellSize - this.y;
@@ -245,7 +264,7 @@ function person(id) {
         }
     }
     this.moveTowardPerson = function (p) {
-        console.log("moving to person!");
+        //console.log("moving to person!");
         //var curTile = this.getCurrentMapTile();
         var dx = p.x - this.x;
         var dy = p.y - this.y;
@@ -271,8 +290,21 @@ function person(id) {
     this.pickAndStartAction = function(t){
         //find the most pressing need
         var need = this.highestNeed();
+
+        //check worklist to see if cost of satisfying highest need is less than the next worklist item.
+        // ie time profit earned by doing the work is greater than the need cost
+
         if (need < 0) {
-            console.log("no needs huh");
+            //check worklist.
+            //console.log("no needs checking worklist");
+            if (this.workList.length > 0) {
+                console.log("doing a worklist item!")
+                this.make(this.workList.pop());
+            }
+            else {
+               // console.log("no needs huh");
+            }
+
             // i guess you are set? wait for now...
             return;
         }
@@ -310,7 +342,7 @@ function person(id) {
         //console.log(this.inventory);
         var pick = -1;
         for (var i = 0; i < this.inventory.length; i++) {
-            console.log(this.inventory);
+            //console.log(this.inventory);
             if (this.inventory[i].satisfies[need]) {
                 pick = i;
             }
@@ -373,11 +405,7 @@ function person(id) {
                 //we found one! estimate its cost!
                 var cost = this.estimateCost(goods[i]);
                 var marketcost = this.lowestMarketPrice(goods[i]);
-                if (marketcost < cost) {
-                    console.log("person " + this.id + " should buy " + goods[i].name + " instead of making it");
-                    //console.log(goods);
-                }
-                cost = cost / (goods[i].satisfies[need] * goods[i].batch);
+                cost = Math.min(cost, marketcost) / (goods[i].satisfies[need] * goods[i].batch);
                 if (cost < mincost) {
                     mincost = cost;
                     bestbet = goods[i];
@@ -458,6 +486,7 @@ function person(id) {
         return cost;
     }
     this.lowestMarketPrice = function (g) {
+        if (!g.tradeable) { return 999999999; }
         //console.log(g);
         var lowest = null;
         var first = true;
@@ -473,6 +502,7 @@ function person(id) {
         return lowest;
     }
     this.lowestMarketTime = function (g) {
+        if (!g.tradeable) { return 999999; }
         var lowest = null;
         var bestid = null;
         var first = true;
@@ -543,12 +573,22 @@ goods.push(g);
 g = new good("drink water");
 g.satisfies[Needs.WATER] = .5;
 g.res[Resource.WATER] = .5;
+g.tradeable = false;
 goods.push(g);
 
 g = new good("sleep");
 g.satisfies[Needs.SLEEP] = 2;
 g.satisfies[Needs.COMFORT] = 1;
 g.res[Resource.HOUSING] = 1;
+g.tradeable = false;
 goods.push(g);
+
+g = new good("logs");
+g.res[Resource.TREES] = 1;
+g.supplies[Supply.LUMBER] = 1;
+g.batch = 3;
+goods.push(g);
+
+
 
 console.log(goods);
