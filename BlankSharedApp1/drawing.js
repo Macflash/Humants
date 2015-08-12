@@ -44,7 +44,7 @@ function worldView(scale, centerX, centerY, canvas, context) {
         this.context.lineWidth = 1;
         this.context.strokeStyle = color;
         this.context.stroke();
-    }
+    };
     this.drawCircle = function (radius, color, worldx, worldy) {
         var x = this.scale * (worldx - (this.centerX)) + (this.canvas.width / 2);
         var y = this.scale * (worldy - (this.centerY)) + (this.canvas.height / 2);
@@ -52,10 +52,10 @@ function worldView(scale, centerX, centerY, canvas, context) {
         this.context.arc(x, y, radius * this.scale, 0, 2 * Math.PI, false);
         this.context.fillStyle = color;
         this.context.fill();
-    }
+    };
     this.clear = function () {
         this.context.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawCircle(10, "black", 0, 0);
-    }
+    };
 }
 
